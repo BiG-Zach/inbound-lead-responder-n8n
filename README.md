@@ -76,7 +76,7 @@ The template ships CRM-free on purpose — every shop's CRM is different and pre
 
 ## Get the Pro version
 
-[**Buy the Pro pack →**](PLACEHOLDER_GUMROAD_URL)
+[**Buy the Pro pack →**](https://bradfordguide.gumroad.com/l/sdxzdj)
 
 Pro adds:
 
@@ -92,6 +92,6 @@ MIT. See `LICENSE`.
 
 ## Built by
 
-Zach Bradford / BiG-Zach — [PLACEHOLDER_X_URL](PLACEHOLDER_X_URL)
+Zach Bradford / BiG-Zach — [https://x.com/YOUR_HANDLE](https://x.com/YOUR_HANDLE)
 
 If this template saves you even one lost lead, it's paid for itself. If it doesn't work for you, email me — I'd rather refund you than have an unhappy customer on the list.

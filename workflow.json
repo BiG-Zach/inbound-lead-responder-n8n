@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Inbound Lead Responder\n\n**What this does:**\nReceives inbound leads via webhook, classifies them with an LLM (OpenRouter / owl-alpha), and drafts personalized replies for high-value categories.\n\n**Flow:**\n1. Webhook receives POST /inbound-lead\n2. Normalize Lead extracts fields (with sample-data fallback)\n3. Classify Lead → category + urgency_score + intent_summary\n4. Parse Classification (try/catch JSON)\n5. Route by Category:\n   - spam / support → straight to Ack\n   - hot_lead / partnership → Draft Reply → Format → Gmail → Slack → Ack\n6. Acknowledge Webhook returns JSON status\n\n**Required env / creds:**\n- OpenRouter API (httpHeaderAuth)\n- Gmail OAuth2\n- SLACK_WEBHOOK_URL env var",
+        "content": "## Inbound Lead Responder\n\n**What this does:**\nReceives inbound leads via webhook, classifies them with an LLM (OpenRouter / Gemini 2.5 Flash (swappable to any OpenRouter model)), and drafts personalized replies for high-value categories.\n\n**Flow:**\n1. Webhook receives POST /inbound-lead\n2. Normalize Lead extracts fields (with sample-data fallback)\n3. Classify Lead \u2192 category + urgency_score + intent_summary\n4. Parse Classification (try/catch JSON)\n5. Route by Category:\n   - spam / support \u2192 straight to Ack\n   - hot_lead / partnership \u2192 Draft Reply \u2192 Format \u2192 Gmail \u2192 Slack \u2192 Ack\n6. Acknowledge Webhook returns JSON status\n\n**Required env / creds:**\n- OpenRouter API (httpHeaderAuth)\n- Gmail OAuth2\n- SLACK_WEBHOOK_URL env var",
         "height": 520,
         "width": 460
       },
@@ -54,7 +54,7 @@
             {
               "id": "field-message",
               "name": "message",
-              "value": "={{ $json.body?.message || \"Hi — I run a 12-person agency and we're hitting a ceiling on growth. Our flywheel keeps stalling and we're losing roughly $40k MRR to churn each quarter. Curious if your team works with shops our size on retention systems. Open to a quick call next week.\" }}",
+              "value": "={{ $json.body?.message || \"Hi \u2014 I run a 12-person agency and we're hitting a ceiling on growth. Our flywheel keeps stalling and we're losing roughly $40k MRR to churn each quarter. Curious if your team works with shops our size on retention systems. Open to a quick call next week.\" }}",
               "type": "string"
             },
             {
@@ -113,7 +113,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"openrouter/owl-alpha\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a lead-classification assistant. Read the inbound message and return STRICT JSON only, no prose, no markdown fences. Schema: {\\\"category\\\": one of [\\\"hot_lead\\\", \\\"cold_lead\\\", \\\"support\\\", \\\"spam\\\", \\\"partnership\\\"], \\\"urgency_score\\\": integer 1-10, \\\"intent_summary\\\": short string under 200 chars}. hot_lead = clear buying intent or budget mentioned. cold_lead = vague curiosity. support = existing customer asking for help. spam = promotional/irrelevant. partnership = vendor/affiliate/collab outreach.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify(\"Name: \" + $json.name + \"\\nEmail: \" + $json.email + \"\\nCompany: \" + $json.company + \"\\nSource: \" + $json.source + \"\\nMessage:\\n\" + $json.message) }}\n    }\n  ],\n  \"temperature\": 0.2,\n  \"response_format\": {\"type\": \"json_object\"}\n}",
+        "jsonBody": "={\n  \"model\": \"google/gemini-2.5-flash\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a lead-classification assistant. Read the inbound message and return STRICT JSON only, no prose, no markdown fences. Schema: {\\\"category\\\": one of [\\\"hot_lead\\\", \\\"cold_lead\\\", \\\"support\\\", \\\"spam\\\", \\\"partnership\\\"], \\\"urgency_score\\\": integer 1-10, \\\"intent_summary\\\": short string under 200 chars}. hot_lead = clear buying intent or budget mentioned. cold_lead = vague curiosity. support = existing customer asking for help. spam = promotional/irrelevant. partnership = vendor/affiliate/collab outreach.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify(\"Name: \" + $json.name + \"\\nEmail: \" + $json.email + \"\\nCompany: \" + $json.company + \"\\nSource: \" + $json.source + \"\\nMessage:\\n\" + $json.message) }}\n    }\n  ],\n  \"temperature\": 0.2,\n  \"response_format\": {\"type\": \"json_object\"}\n}",
         "options": {
           "timeout": 30000
         }
@@ -135,7 +135,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse the OpenRouter classification response with a safe fallback.\nconst lead = $('Normalize Lead').item.json;\nconst raw = $input.item.json;\n\nlet category = 'cold_lead';\nlet urgency_score = 5;\nlet intent_summary = 'Unclassified — parser fallback.';\n\ntry {\n  const content = raw?.choices?.[0]?.message?.content;\n  if (!content) throw new Error('No content in LLM response');\n\n  // Strip possible markdown fencing just in case.\n  const cleaned = String(content).replace(/^```(?:json)?\\s*/i, '').replace(/```\\s*$/,'').trim();\n  const parsed = JSON.parse(cleaned);\n\n  if (parsed.category) category = String(parsed.category).toLowerCase().trim();\n  if (Number.isFinite(parsed.urgency_score)) {\n    urgency_score = Math.min(10, Math.max(1, Math.round(parsed.urgency_score)));\n  }\n  if (parsed.intent_summary) intent_summary = String(parsed.intent_summary).slice(0, 240);\n\n  const allowed = ['hot_lead','cold_lead','support','spam','partnership'];\n  if (!allowed.includes(category)) category = 'cold_lead';\n} catch (err) {\n  intent_summary = 'Classifier parse error: ' + (err?.message || 'unknown') + '. Defaulting to cold_lead.';\n}\n\nreturn [{\n  json: {\n    ...lead,\n    category,\n    urgency_score,\n    intent_summary\n  }\n}];"
+        "jsCode": "// Parse the OpenRouter classification response with a safe fallback.\nconst lead = $('Normalize Lead').item.json;\nconst raw = $input.item.json;\n\nlet category = 'cold_lead';\nlet urgency_score = 5;\nlet intent_summary = 'Unclassified \u2014 parser fallback.';\n\ntry {\n  const content = raw?.choices?.[0]?.message?.content;\n  if (!content) throw new Error('No content in LLM response');\n\n  // Strip possible markdown fencing just in case.\n  const cleaned = String(content).replace(/^```(?:json)?\\s*/i, '').replace(/```\\s*$/,'').trim();\n  const parsed = JSON.parse(cleaned);\n\n  if (parsed.category) category = String(parsed.category).toLowerCase().trim();\n  if (Number.isFinite(parsed.urgency_score)) {\n    urgency_score = Math.min(10, Math.max(1, Math.round(parsed.urgency_score)));\n  }\n  if (parsed.intent_summary) intent_summary = String(parsed.intent_summary).slice(0, 240);\n\n  const allowed = ['hot_lead','cold_lead','support','spam','partnership'];\n  if (!allowed.includes(category)) category = 'cold_lead';\n} catch (err) {\n  intent_summary = 'Classifier parse error: ' + (err?.message || 'unknown') + '. Defaulting to cold_lead.';\n}\n\nreturn [{\n  json: {\n    ...lead,\n    category,\n    urgency_score,\n    intent_summary\n  }\n}];"
       },
       "id": "parse-1",
       "name": "Parse Classification",
@@ -269,7 +269,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"openrouter/owl-alpha\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You draft warm, personalized replies to inbound leads. Output ONLY the reply body — no subject line, no preamble, no quoted message. Constraints: exactly 3 sentences. Reference one specific detail from the lead's message. Friendly but not gushing. End with a clear next step. Sign off with the literal string [Your Name] on its own line.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify(\"Lead name: \" + $json.name + \"\\nCompany: \" + $json.company + \"\\nCategory: \" + $json.category + \"\\nUrgency: \" + $json.urgency_score + \"/10\\nIntent: \" + $json.intent_summary + \"\\n\\nOriginal message:\\n\" + $json.message) }}\n    }\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 400\n}",
+        "jsonBody": "={\n  \"model\": \"google/gemini-2.5-flash\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You draft warm, personalized replies to inbound leads. Output ONLY the reply body \u2014 no subject line, no preamble, no quoted message. Constraints: exactly 3 sentences. Reference one specific detail from the lead's message. Friendly but not gushing. End with a clear next step. Sign off with the literal string [Your Name] on its own line.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify(\"Lead name: \" + $json.name + \"\\nCompany: \" + $json.company + \"\\nCategory: \" + $json.category + \"\\nUrgency: \" + $json.urgency_score + \"/10\\nIntent: \" + $json.intent_summary + \"\\n\\nOriginal message:\\n\" + $json.message) }}\n    }\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 400\n}",
         "options": {
           "timeout": 30000
         }
@@ -291,7 +291,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Merge the drafted reply with the lead context so downstream nodes have everything.\nconst lead = $('Parse Classification').item.json;\nconst draft = $input.item.json;\n\nlet body = '';\ntry {\n  body = draft?.choices?.[0]?.message?.content?.trim() || '';\n} catch (e) {\n  body = '';\n}\n\nif (!body) {\n  body = `Hi ${lead.name || 'there'},\\n\\nThanks for reaching out — we'd love to learn more about what you're working on. Mind if I send over a couple of times for a quick call this week?\\n\\n[Your Name]`;\n}\n\nconst source = lead.source || 'your inquiry';\nconst subject = `Re: your message about ${source}`;\n\nreturn [{\n  json: {\n    ...lead,\n    reply_subject: subject,\n    reply_body: body,\n    to_email: lead.email,\n    to_name: lead.name\n  }\n}];"
+        "jsCode": "// Merge the drafted reply with the lead context so downstream nodes have everything.\nconst lead = $('Parse Classification').item.json;\nconst draft = $input.item.json;\n\nlet body = '';\ntry {\n  body = draft?.choices?.[0]?.message?.content?.trim() || '';\n} catch (e) {\n  body = '';\n}\n\nif (!body) {\n  body = `Hi ${lead.name || 'there'},\\n\\nThanks for reaching out \u2014 we'd love to learn more about what you're working on. Mind if I send over a couple of times for a quick call this week?\\n\\n[Your Name]`;\n}\n\nconst source = lead.source || 'your inquiry';\nconst subject = `Re: your message about ${source}`;\n\nreturn [{\n  json: {\n    ...lead,\n    reply_subject: subject,\n    reply_body: body,\n    to_email: lead.email,\n    to_name: lead.name\n  }\n}];"
       },
       "id": "format-1",
       "name": "Format Reply",
@@ -343,7 +343,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"text\": {{ JSON.stringify(\"🔥 New \" + $json.category + \" (urgency \" + $json.urgency_score + \"/10) from \" + $json.name + \" <\" + $json.email + \">\\n*Intent:* \" + $json.intent_summary + \"\\n*Draft sent:* \" + $json.reply_subject) }}\n}",
+        "jsonBody": "={\n  \"text\": {{ JSON.stringify(\"\ud83d\udd25 New \" + $json.category + \" (urgency \" + $json.urgency_score + \"/10) from \" + $json.name + \" <\" + $json.email + \">\\n*Intent:* \" + $json.intent_summary + \"\\n*Draft sent:* \" + $json.reply_subject) }}\n}",
         "options": {
           "timeout": 15000
         }

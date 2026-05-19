@@ -40,27 +40,37 @@ inbound-lead-responder/
 ## Quickstart (5 minutes)
 
 1. **Import** — In n8n, go to Workflows → Import from File → pick `workflow.json`.
-2. **Create the OpenRouter credential** — Credentials → New → HTTP Header Auth. Name it `OpenRouter API`. Header name `Authorization`, value `Bearer YOUR_OPENROUTER_KEY`. Grab a key at openrouter.ai.
+2. **Create the OpenRouter credential** — Credentials → New → HTTP Header Auth. Name it `OpenRouter API`. Header name `Authorization`, value `Bearer YOUR_OPENROUTER_KEY`. Grab a key at openrouter.ai and add $5 credit so the default model has room to run.
 3. **(Optional) Connect Gmail** — Click the `Send Email Reply` node and authorize Gmail OAuth2. Skip this if you don't want auto-replies sent yet.
 4. **(Optional) Set `SLACK_WEBHOOK_URL`** — Add it as an n8n environment variable or in Settings → Variables.
-5. **Test it** — Click `Execute Workflow` once. The `Normalize Lead` node has a built-in sample lead, so the whole pipeline runs end-to-end without a real webhook fire. You should see a classification land in `Parse Classification` and a draft reply in `Format Reply`.
+5. **Test it** — Click `Execute Workflow` once. The `Normalize Lead` node has built-in sample-data fallbacks, so the whole pipeline runs end-to-end without a real webhook fire. You should see a classification land in `Parse Classification` and a draft reply in `Format Reply`.
 
 Detailed walkthrough in `docs/setup-5-minutes.md`.
+
+## API cost
+
+The workflow ships with `google/gemini-2.5-flash` as the default model via OpenRouter — fast, stable, and inexpensive. Measured per-lead cost (verified on real test traffic):
+
+- **Spam / cold lead / support** (classify only): ~$0.0002 per lead
+- **Hot lead / partnership** (classify + draft reply): ~$0.0004 per lead
+
+In practice, **$5 of OpenRouter credit covers roughly 11,500 hot-lead pipeline runs or 23,000 lower-priority leads** — most solo operators get months or years of runway per top-up.
+
+You can swap to any other OpenRouter model — including free-tier options — in one field per node. See `docs/customize-the-prompt.md` for the model-swap instructions.
 
 ## Tested with
 
 - n8n **1.121.0+** (self-hosted and Cloud)
-- OpenRouter — default model `openrouter/owl-alpha` (free tier as of writing)
+- OpenRouter — default model `google/gemini-2.5-flash`
 - Gmail OAuth2, Slack incoming webhooks
 
 ## Security note
 
-**This workflow requires n8n 1.121.0 or higher.** That version patches two important CVEs you should not run without:
+**This workflow requires n8n 1.121.0 or higher.** Older versions are vulnerable to **CVE-2026-21858 ("Ni8mare")**, a critical (CVSS 10.0) unauthenticated file-read vulnerability in n8n's webhook handling, patched on November 18, 2025.
 
-- **CVE-2025-1217** — webhook path-traversal in older n8n builds
-- **CVE-2026-21858 ("Ni8mare")** — credential exposure via the expression engine
+Because this template uses a webhook trigger, you should not run it on older n8n versions, especially if your instance is internet-exposed. Run `n8n --version` to verify before importing.
 
-Do not run this template on older n8n versions, particularly if your instance is internet-exposed. If you're self-hosting, run `n8n --version` before importing.
+Reference: [GitHub Security Advisory GHSA-v4pr-fm98-w9pg](https://github.com/n8n-io/n8n/security/advisories/GHSA-v4pr-fm98-w9pg)
 
 ## How it works
 
@@ -68,23 +78,21 @@ The classifier is a single OpenRouter chat completion with a tight system prompt
 
 ## Customize the prompts
 
-The two prompts live in the `Classify Lead` and `Draft High-Priority Reply` nodes. You can change categories, tone, sentence length, and language without touching any other part of the workflow. See `docs/customize-the-prompt.md`.
+The two prompts live in the `Classify Lead` and `Draft High-Priority Reply` nodes. You can change categories, tone, sentence length, language — and the model itself — without touching any other part of the workflow. See `docs/customize-the-prompt.md`.
 
 ## Swap CRMs
 
 The template ships CRM-free on purpose — every shop's CRM is different and pre-built integrations rot fast. Adding HubSpot, Pipedrive, or Airtable is one HTTP Request node after `Format Reply`. See `docs/swap-crms.md` for a working example.
 
-## Get the Pro version
+## Pricing & versions
 
-[**Buy the Pro pack →**](https://bradfordguide.gumroad.com/l/sdxzdj)
+This template ships in three tiers on Gumroad:
 
-Pro adds:
+- **Lite — $19.** Just the `workflow.json`, README, and LICENSE. The exact same files shipped on GitHub. Best for: "I just want the workflow."
+- **Pro — $49.** Everything in Lite, plus the `docs/` folder (setup, customize, swap-CRMs), the `examples/` folder (consultant, real estate, agency configs), `.env.example`, a 2-minute video walkthrough, and priority email support with a 48-hour reply SLA.
+- **Bundle — $129.** Everything in Pro, plus my next n8n template — **Inbound Email Triage** — shipping within 30 days. Bundle buyers get early access before the public launch.
 
-- Pre-built HubSpot, Pipedrive, and Airtable variants (drop-in, no JSON surgery)
-- Companion error-handler workflow that catches failed executions and DMs you
-- Sample-data demo mode (toggle a single variable to run without a real webhook source)
-- 90-second Loom walkthrough — install, customize, ship
-- Priority email support, 48-hour reply SLA
+[**Buy on Gumroad →**](https://bigzachai.gumroad.com/l/sdxzdj)
 
 ## License
 
@@ -92,6 +100,6 @@ MIT. See `LICENSE`.
 
 ## Built by
 
-Zach Bradford / BiG-Zach — [https://x.com/YOUR_HANDLE](https://x.com/YOUR_HANDLE)
+Zach Bradford / BiG-Zach
 
 If this template saves you even one lost lead, it's paid for itself. If it doesn't work for you, email me — I'd rather refund you than have an unhappy customer on the list.

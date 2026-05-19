@@ -35,6 +35,24 @@ Swap pieces of that for your voice. A few examples:
 - **Real estate agent:** See `examples/real-estate-config.md`.
 - **Fitness coach:** Categories like `1on1_inquiry`, `group_program`, `meal_plan`, `media`, `spam`. Reply prompt should ask about current goals and timeline.
 
+## Swap the model
+
+The default model is `google/gemini-2.5-flash` — fast, stable, and cheap (~$0.0002–$0.0014 per lead). To swap it:
+
+1. Open the `Classify Lead` node → **Body** → **JSON**.
+2. Find the line `"model": "google/gemini-2.5-flash"` and replace with any other OpenRouter model ID.
+3. Do the same in the `Draft High-Priority Reply` node.
+4. Save and re-test.
+
+**Recommended alternatives:**
+
+- **`anthropic/claude-3.5-haiku`** — Better at nuanced classification and writing personable replies. ~$1/M input, $5/M output. Roughly 3–4x the cost of Gemini Flash but noticeably higher quality on edge cases.
+- **`openai/gpt-4o-mini`** — Comparable price to Gemini Flash, slightly different prose style. Good fallback if Gemini availability ever flakes.
+- **Free-tier models** — Browse the current free pool at https://openrouter.ai/collections/free-models. Useful for testing and very low-volume use. **Caveat:** free models get deprecated, rate-limited, or replaced without notice. Don't pin a business workflow to a free model unless you're prepared to re-test when it changes.
+- **`openrouter/free`** — OpenRouter's auto-routing endpoint that picks from the current free pool. Trades determinism for free inference.
+
+If you swap to a model that doesn't support `response_format: json_object` (most free models don't), remove that line from the `Classify Lead` JSON body. The `Parse Classification` Code node already handles fence-stripped JSON in plain text responses, so it'll still work — just slightly less deterministic.
+
 ## Temperature reminder
 
 - **Lower (0.1–0.3)** — more consistent, more deterministic. Use for the classifier. You want the same message to always get the same label.

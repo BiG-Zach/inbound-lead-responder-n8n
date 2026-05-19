@@ -4,8 +4,8 @@ This is the expanded version of the Quickstart in the README. If something break
 
 ## Prerequisites
 
-- An n8n instance running version **1.121.0 or higher** (self-hosted or Cloud). Run `n8n --version` to check, or look at the bottom of the n8n UI.
-- An OpenRouter account with an API key — free tier is fine. Sign up at https://openrouter.ai/.
+- An n8n instance running version **1.121.0 or higher** (self-hosted or Cloud). Run `n8n --version` to check, or look at the bottom of the n8n UI. Older versions are vulnerable to CVE-2026-21858 ("Ni8mare") — see the README's Security note.
+- An OpenRouter account with an API key. Sign up at https://openrouter.ai/ and add **$5 in credits** so the default Gemini 2.5 Flash model has room to run. (Per-lead cost is ~$0.0002–$0.0014, so $5 lasts most users many months.)
 - (Optional) A Gmail account you can authorize OAuth2 on.
 - (Optional) A Slack workspace where you can create an incoming webhook.
 
@@ -14,7 +14,7 @@ This is the expanded version of the Quickstart in the README. If something break
 1. Open n8n.
 2. Top-right: **Workflows** → **Import from File**.
 3. Select `workflow.json` from this folder.
-4. The workflow opens in the editor. You'll see ~10 nodes wired left-to-right starting from the `Webhook` node.
+4. The workflow opens in the editor. You'll see 11 nodes wired left-to-right starting from the `Webhook` node.
 
 Do **not** activate the workflow yet — we need credentials first.
 
@@ -82,6 +82,9 @@ Point your contact form's form-submission handler (Netlify Forms, Formspree, Web
 
 **Classification node fails with 401 or 403.**
 Your OpenRouter credential is wrong. Check that the header value starts with `Bearer ` (with a space) and that the key has not been revoked. Re-test from the credential's test button.
+
+**Classification node fails with 402 ("insufficient credits").**
+OpenRouter requires a small credit balance for paid models like Gemini 2.5 Flash. Add $5 to your account at openrouter.ai/credits. That'll cover thousands of leads.
 
 **Email node fails with "OAuth2 not authorized".**
 Click the `Send Email Reply` node → credential dropdown → connect / re-authorize Gmail. Confirm you granted send permissions during the OAuth flow. Note that `continueOnFail` is on, so the webhook still acknowledges 200 — the failure is silent from the prospect's perspective.

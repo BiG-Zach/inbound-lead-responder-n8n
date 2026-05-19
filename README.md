@@ -9,19 +9,14 @@ A drop-in n8n workflow that catches inbound contact-form submissions, classifies
 - **CRM busywork eats your day.** Triaging contact-form noise, copy-pasting messages into your CRM, deciding what's urgent — it's the kind of work that should never have made it onto your calendar in the first place.
 
 ## What this template does
-
-```
 Webhook (POST /inbound-lead)
-  → Normalize lead fields (with sample-data fallback)
-  → Classify with OpenRouter LLM (category + urgency 1–10 + intent summary)
-  → Route by category (spam/support short-circuit; hot_lead/partnership get the full treatment)
-  → Draft a 3-sentence personalized reply → send via Gmail → notify Slack
-  → Acknowledge the webhook with JSON
-```
+→ Normalize lead fields (with sample-data fallback)
+→ Classify with OpenRouter LLM (category + urgency 1–10 + intent summary)
+→ Route by category (spam/support short-circuit; hot_lead/partnership get the full treatment)
+→ Draft a 3-sentence personalized reply → send via Gmail → notify Slack
+→ Acknowledge the webhook with JSON
 
 ## What's in the box
-
-```
 inbound-lead-responder/
 ├── workflow.json              # The n8n workflow — import this
 ├── .env.example               # Env vars you'll set
@@ -32,10 +27,9 @@ inbound-lead-responder/
 │   ├── customize-the-prompt.md
 │   └── swap-crms.md
 └── examples/
-    ├── consultant-config.md
-    ├── real-estate-config.md
-    └── agency-config.md
-```
+├── consultant-config.md
+├── real-estate-config.md
+└── agency-config.md
 
 ## Quickstart (5 minutes)
 
@@ -88,11 +82,11 @@ The template ships CRM-free on purpose — every shop's CRM is different and pre
 
 This template ships in three tiers on Gumroad:
 
-- **Lite — $19.** Just the `workflow.json`, README, and LICENSE. The exact same files shipped on GitHub. Best for: "I just want the workflow."
+- **Lite — $19.** Just the `workflow.json`, README, and LICENSE. The exact same files shipped free on GitHub. Best for: "I just want the workflow."
 - **Pro — $49.** Everything in Lite, plus the `docs/` folder (setup, customize, swap-CRMs), the `examples/` folder (consultant, real estate, agency configs), `.env.example`, a 2-minute video walkthrough, and priority email support with a 48-hour reply SLA.
-- **Bundle — $129.** Everything in Pro, plus my next n8n template — **Inbound Email Triage** — shipping within 30 days. Bundle buyers get early access before the public launch.
+- **Bundle — $129.** Everything in Pro, plus my next n8n template — **Inbound Email Triage** — shipping within days. Bundle buyers get early access before the public launch.
 
-[**Buy on Gumroad →**](https://bigzachai.gumroad.com/l/sdxzdj)
+[**Buy on Gumroad →**](https://bigzachai.gumroad.com/l/inbound-lead-responder)
 
 ## License
 
